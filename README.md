@@ -1,2 +1,2 @@
 # frequency-server
-A web application that generates signals fpr variouns occasions
+A web application that generates signals for variouns occasions
