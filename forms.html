@@ -1,14 +1,20 @@
 {{if .Success}}
     <h1>Thanks for your message!</h1>
 {{else}}
-    <h1>Contact</h1>
+    <h1>Frequency Generator</h1>
     <form method="POST">
-        <label>Email:</label><br />
-        <input type="text" name="email"><br />
-        <label>Subject:</label><br />
-        <input type="text" name="subject"><br />
-        <label>Message:</label><br />
-        <textarea name="message"></textarea><br />
-        <input type="submit">
+        <label>Method:</label><br />
+	<select name="frmethod">
+  	  <option>Audio</option>
+  	  <option>FY2300</option>
+	  <option>PEMF-Test</option>
+	</select><br />
+        <label>File:</label><br />
+	<select name="frfile">
+    	{{range .Frfiles}}
+            	<option>{{.Frfile}}</option>
+    	{{end}}
+	</select><br /><br />
+        <input type="submit" value="Process">
     </form>
 {{end}}

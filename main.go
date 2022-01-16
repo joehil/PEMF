@@ -3,12 +3,30 @@ package main
 import (
     "html/template"
     "net/http"
+    "io/ioutil"
 )
 
-type ContactDetails struct {
-    Email   string
-    Subject string
-    Message string
+type FFiles struct {
+    Frfile string
+}
+
+type FormsData struct {
+    Title string
+    Frfiles []FFiles
+    Success bool
+}
+
+func listDir(direc string) (trfiles []FFiles) {
+    files, err := ioutil.ReadDir(direc)
+    if err == nil {
+	    for _, file := range files {
+                tfile := FFiles{
+			Frfile: file.Name(),
+		}
+                trfiles = append(trfiles,tfile)
+    	    }
+   }
+   return
 }
 
 func main() {
@@ -16,20 +34,28 @@ func main() {
 
     http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
         if r.Method != http.MethodPost {
-            tmpl.Execute(w, nil)
+            data := FormsData{
+		Title: "Kein Titel", 
+            	Frfiles: listDir("data/FY2300"),
+		Success: false,
+	    }
+            tmpl.Execute(w, data)
             return
         }
 
-        details := ContactDetails{
-            Email:   r.FormValue("email"),
-            Subject: r.FormValue("subject"),
-            Message: r.FormValue("message"),
+        data := FormsData{
+	    Title: "Titel",
+            Frfiles: []FFiles{
+                {Frfile: "Audio1"},
+                {Frfile: "Audio2"},
+            },
+            Success: true,
         }
 
         // do something with details
-        _ = details
+//        _ = details
 
-        tmpl.Execute(w, struct{ Success bool }{true})
+        tmpl.Execute(w, data)
     })
 
     http.ListenAndServe(":8080", nil)
