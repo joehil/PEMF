@@ -1,10 +1,17 @@
-{{if .Success}}
+{{if (eq .Stage "Success")}}
     <h1>Thanks for your message!</h1>
 {{else}}
+<script type="text/javascript">
+function submitform()
+{
+  document.getElementById("stage").value = "change";
+  document.frform.submit();
+}
+</script>
     <h1>Frequency Generator</h1>
-    <form method="POST">
+    <form name="frform" id="frform" method="POST" action="/">
         <label>Method:</label><br />
-	<select name="frmethod">
+	<select name="frmethod" onchange="submitform()">
   	  <option>Audio</option>
   	  <option>FY2300</option>
 	  <option>PEMF-Test</option>
@@ -16,5 +23,6 @@
     	{{end}}
 	</select><br /><br />
         <input type="submit" value="Process">
+	<input type="hidden" name="stage" id="stage" value="Success">
     </form>
 {{end}}
