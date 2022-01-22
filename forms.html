@@ -1,5 +1,5 @@
 {{if (eq .Stage "Success")}}
-    <h1>Thanks for your message!</h1>
+    <h1>Datei {{.Frfile}} ausgewählt, Programm gestartet</h1>
 {{else}}
 <script type="text/javascript">
 function submitform()
@@ -12,9 +12,9 @@ function submitform()
     <form name="frform" id="frform" method="POST" action="/">
         <label>Method:</label><br />
 	<select name="frmethod" onchange="submitform()">
-  	  <option>Audio</option>
-  	  <option>FY2300</option>
-	  <option>PEMF-Test</option>
+  	  <option {{if (eq .Frmethod "Audio")}}selected{{end}}>Audio</option>
+  	  <option {{if (eq .Frmethod "FY2300")}}selected{{end}}>FY2300</option>
+	  <option {{if (eq .Frmethod "PEMF-Test")}}selected{{end}}>PEMF-Test</option>
 	</select><br />
         <label>File:</label><br />
 	<select name="frfile">
