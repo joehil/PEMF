@@ -19,6 +19,23 @@ Amplitude: {{.Amplitude}}<br>
 Waveform: {{.Waveform}}<br>
 Time to go: {{.TimeToGo}}<br>
 {{end}}
+{{if (eq .Stage "Ended")}}
+<script type="text/javascript">
+    window.onload = setupRefresh;
+    function setupRefresh() {
+      setTimeout("refreshPage();", 10000); // milliseconds
+    }
+    function refreshPage() {
+        document.frform.submit();
+    }
+</script>
+<h1>Program {{.Frfile}} has ended</h1>
+    <form name="frform" id="frform" method="POST" action="/">
+    <input type="hidden" name="frfile" id="frfile" value="{{.Frfile}}">
+    <input type="hidden" name="stage" id="stage" value="Initial">
+    </form>
+<br>
+{{end}}
 {{if (eq .Stage "Success")}}
 <script type="text/javascript">
     window.onload = setupRefresh;

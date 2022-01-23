@@ -52,6 +52,7 @@ var timeToGo string = "0"
 var frequency string = "0"
 var amplitude string = "0"
 var waveform string = "0"
+var hasEnded bool = false
 
 func main() {
     var data FormsData
@@ -110,6 +111,10 @@ func main() {
                 data.Frequency = frequency
                 data.Amplitude = amplitude
                 data.Waveform = waveform
+		if hasEnded {
+			data.Stage = "Ended"
+			hasEnded = false
+		}
 	}
 
         tmpl.Execute(w, data)
@@ -162,6 +167,7 @@ func procFy2300(path string){
 		time.Sleep(1 * time.Second)
 	}
     }
+    hasEnded = true
 }
 
 func readLines(path string) ([]string, error) {
