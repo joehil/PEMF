@@ -9,6 +9,7 @@ import (
     "time"
     "bufio"
     "strings"
+    "strconv"
     "github.com/tarm/serial"
 )
 
@@ -22,6 +23,10 @@ type FormsData struct {
     Frfiles []FFiles
     Frfile string
     Stage string
+    Frequency string
+    Amplitude string
+    Waveform string
+    TimeToGo string
 }
 
 type Answer struct {
@@ -43,12 +48,15 @@ func listDir(direc string) (trfiles []FFiles) {
    return
 }
 
+var timeToGo string = "0"
+var frequency string = "0"
+var amplitude string = "0"
+var waveform string = "0"
+
 func main() {
-    data := FormsData{
-	Title: "Kein Titel",
-	Frmethod : "Audio",
-	Stage: "Run",
-    }
+    var data FormsData
+
+    data.Frmethod = "Audio"
 
     fmt.Println("Frequency server started")
 
@@ -66,6 +74,10 @@ func main() {
 
         if answer.Frmethod == "" {
 		answer.Frmethod = "Audio"
+        }
+
+        if answer.Stage == "" {
+                answer.Stage = "Initial"
         }
 
         data = FormsData{
@@ -86,10 +98,18 @@ func main() {
 //        		procAudio("data/"+answer.Frfile)
         		case "FY2300":
 			fmt.Println("FY2300: "+answer.Frfile)
-        		procFy2300("data/FY2300/"+answer.Frfile)
+        		go procFy2300("data/FY2300/"+answer.Frfile)
 		        default:
         		fmt.Println("The command is wrong!")
+			data.Stage = "Run"
     		}
+	}
+
+	if  data.Stage == "Run" {
+		data.TimeToGo = timeToGo
+                data.Frequency = frequency
+                data.Amplitude = amplitude
+                data.Waveform = waveform
 	}
 
         tmpl.Execute(w, data)
@@ -112,10 +132,26 @@ func procFy2300(path string){
     } 
 
     for _, cmd := range lines {
-	cser, cint := parseFy2300(cmd)
+	cser, cint, p := parseFy2300(cmd)
+	switch p[0] {
+		case "fr":
+		frequency = p[1]
+		case "am":
+		amplitude = p[1]
+		case "wv":
+		waveform = p[1]
+		default:
+	}
 	if cint != "" {
-		t,_ := time.ParseDuration(cint+"s")
-		time.Sleep(t)
+		timeToGo = cint
+		limit, err := strconv.Atoi(cint)
+   		if err != nil {
+        		fmt.Println(err)
+    		} 
+		for n:=0; n<limit; n++ {
+			timeToGo = fmt.Sprintf("%d",limit-n)
+                        time.Sleep(1 * time.Second)
+                } 
 	}
 	if cser != "" {
 		fmt.Println(cser)
@@ -126,7 +162,6 @@ func procFy2300(path string){
 		time.Sleep(1 * time.Second)
 	}
     }
-
 }
 
 func readLines(path string) ([]string, error) {
@@ -144,7 +179,7 @@ func readLines(path string) ([]string, error) {
     return lines, scanner.Err()
 }
 
-func parseFy2300(cmd string) (string, string) {
+func parseFy2300(cmd string) (string, string, []string) {
     var cser string = ""
     var cint string = ""
 
@@ -163,9 +198,11 @@ func parseFy2300(cmd string) (string, string) {
         cser = "WMN1"
         case "of":
         cser = "WMN0"
+	case "##":
+	break
         default:
         fmt.Println("The command is wrong!")
     }
 
-    return cser, cint
+    return cser, cint, parts
 }

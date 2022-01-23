@@ -1,10 +1,46 @@
+{{if (eq .Stage "Run")}}
+<script type="text/javascript">
+    window.onload = setupRefresh;
+    function setupRefresh() {
+      setTimeout("refreshPage();", 3000); // milliseconds
+    }
+    function refreshPage() {
+        document.frform.submit();
+    }
+</script>
+    <form name="frform" id="frform" method="POST" action="/">
+    <input type="hidden" name="frfile" id="frfile" value="{{.Frfile}}">
+    <input type="hidden" name="stage" id="stage" value="Run">
+    </form>
+<br>
+Program: {{.Frfile}}<br>
+Frequency: {{.Frequency}}<br>
+Amplitude: {{.Amplitude}}<br>
+Waveform: {{.Waveform}}<br>
+Time to go: {{.TimeToGo}}<br>
+{{end}}
 {{if (eq .Stage "Success")}}
-    <h1>Datei {{.Frfile}} ausgewählt, Programm gestartet</h1>
-{{else}}
+<script type="text/javascript">
+    window.onload = setupRefresh;
+    function setupRefresh() {
+      setTimeout("refreshPage();", 3000); // milliseconds
+    }
+    function refreshPage() {
+	document.frform.submit();
+    }
+</script>
+<h1>File {{.Frfile}} chosen, the program will be started</h1>
+    <form name="frform" id="frform" method="POST" action="/">
+    <input type="hidden" name="frfile" id="frfile" value="{{.Frfile}}">
+    <input type="hidden" name="stage" id="stage" value="Run">
+    </form>
+<br>
+{{end}}
+{{if (eq .Stage "Initial")}}
 <script type="text/javascript">
 function submitform()
 {
-  document.getElementById("stage").value = "change";
+  document.getElementById("stage").value = "Initial";
   document.frform.submit();
 }
 </script>
