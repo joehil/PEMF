@@ -54,6 +54,9 @@ var amplitude string = "0"
 var waveform string = "0"
 var hasEnded bool = false
 
+var lostart int = 0
+var locnt int = 0
+
 func main() {
     var data FormsData
 
@@ -136,7 +139,8 @@ func procFy2300(path string){
     	fmt.Println(err)
     } 
 
-    for _, cmd := range lines {
+    for ind := 0; ind < len(lines); ind++ {
+	cmd := lines[ind]
 	cser, cint, p := parseFy2300(cmd)
 	switch p[0] {
 		case "fr":
@@ -148,15 +152,37 @@ func procFy2300(path string){
 		default:
 	}
 	if cint != "" {
-		timeToGo = cint
-		limit, err := strconv.Atoi(cint)
-   		if err != nil {
-        		fmt.Println(err)
-    		} 
-		for n:=0; n<limit; n++ {
-			timeToGo = fmt.Sprintf("%d",limit-n)
-                        time.Sleep(1 * time.Second)
-                } 
+		pt := strings.Split(cint, ":")
+		if pt[0] == "do" {
+			timeToGo = cint
+			limit, err := strconv.Atoi(pt[1])
+   			if err != nil {
+        			fmt.Println(err)
+	    		} 
+			for n:=0; n<limit; n++ {
+				timeToGo = fmt.Sprintf("%d",limit-n)
+                        	time.Sleep(1 * time.Second)
+                	} 
+		}
+                if pt[0] == "lo" {
+			lostart = ind
+		}
+                if pt[0] == "un" {
+                        locnt++
+			limit, _ := strconv.Atoi(pt[1])
+			fmt.Println(limit,locnt)
+			if limit > locnt {
+				ind = lostart
+			}
+                }
+                if pt[0] == "ti" {
+                        now := time.Now()
+			tim := fmt.Sprintf("%02d:%02d",now.Hour(),now.Minute())
+			fmt.Println(tim+" - "+p[1])
+                        if strings.Compare(pt[1], tim) < 0 {
+                                ind = lostart
+                        }
+                }
 	}
 	if cser != "" {
 		fmt.Println(cser)
@@ -193,8 +219,14 @@ func parseFy2300(cmd string) (string, string, []string) {
 
     switch parts[0] {
         case "do":
-        cint = parts[1]
-        case "fr":
+        cint = "do:"+parts[1]
+        case "lo":
+        cint = "lo"
+        case "un":
+        cint = "un:"+parts[1]
+        case "ti":
+        cint = "ti:"+parts[1]
+	case "fr":
         cser = "WMF"+parts[1]
         case "am":
         cser = "WMA"+parts[1]
