@@ -177,9 +177,9 @@ func procFy2300(path string){
                 }
                 if pt[0] == "ti" {
                         now := time.Now()
-			tim := fmt.Sprintf("%02d:%02d",now.Hour(),now.Minute())
+			tim := fmt.Sprintf("%02d.%02d",now.Hour(),now.Minute())
 			fmt.Println(tim+" - "+p[1])
-                        if strings.Compare(pt[1], tim) < 0 {
+                        if pt[1] > tim {
                                 ind = lostart
                         }
                 }
