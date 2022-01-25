@@ -55,7 +55,10 @@ var waveform string = "0"
 var hasEnded bool = false
 
 var lostart int = 0
+var loend int = 0
 var locnt int = 0
+var lotime string = ""
+var isLoop bool = false
 
 func main() {
     var data FormsData
@@ -160,6 +163,14 @@ func procFy2300(path string){
         			fmt.Println(err)
 	    		} 
 			for n:=0; n<limit; n++ {
+	                        if isLoop {
+        	                        now := time.Now()
+                	                tim := fmt.Sprintf("%02d.%02d",now.Hour(),now.Minute())
+                        	        fmt.Println(tim+" - "+lotime)
+                                	if tim > lotime {
+                                        	ind = loend
+                                	}
+                        	}
 				timeToGo = fmt.Sprintf("%d",limit-n)
                         	time.Sleep(1 * time.Second)
                 	} 
@@ -176,12 +187,10 @@ func procFy2300(path string){
 			}
                 }
                 if pt[0] == "ti" {
-                        now := time.Now()
-			tim := fmt.Sprintf("%02d.%02d",now.Hour(),now.Minute())
-			fmt.Println(tim+" - "+p[1])
-                        if pt[1] > tim {
-                                ind = lostart
-                        }
+			loend = ind + 1
+			isLoop = true
+			lotime = pt[1]
+                        ind = lostart
                 }
 	}
 	if cser != "" {
