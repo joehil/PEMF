@@ -52,6 +52,7 @@ var timeToGo string = "0"
 var frequency string = "0"
 var amplitude string = "0"
 var waveform string = "0"
+var curFile string = ""
 var hasEnded bool = false
 
 var lostart int = 0
@@ -59,6 +60,8 @@ var loend int = 0
 var locnt int = 0
 var lotime string = ""
 var isLoop bool = false
+
+var isRunning bool = false
 
 func main() {
     var data FormsData
@@ -76,6 +79,10 @@ func main() {
             Frfile: r.FormValue("frfile"),
             Stage: r.FormValue("stage"),
         }
+
+	if answer.Frfile != "" {
+		curFile = answer.Frfile
+	}
 
 //	fmt.Println(answer)
 
@@ -98,7 +105,7 @@ func main() {
 //	fmt.Println(data)
 
 	if answer.Stage == "Success" {
-		fmt.Println("Datei "+answer.Frfile+" ausgewählt")
+		fmt.Println("File "+answer.Frfile+" chosen")
 		switch answer.Frmethod {
         		case "Audio":
                         fmt.Println("Audio: "+answer.Frfile)
@@ -112,11 +119,13 @@ func main() {
     		}
 	}
 
-	if  data.Stage == "Run" {
+	if  data.Stage == "Run" || isRunning {
 		data.TimeToGo = timeToGo
                 data.Frequency = frequency
                 data.Amplitude = amplitude
                 data.Waveform = waveform
+		data.Frfile = curFile
+		data.Stage = "Run"
 		if hasEnded {
 			data.Stage = "Ended"
 			hasEnded = false
@@ -130,6 +139,7 @@ func main() {
 }
 
 func procFy2300(path string){
+    isRunning = true
     lines,err := readLines(path)
 
     if err != nil {
@@ -166,9 +176,13 @@ func procFy2300(path string){
 	                        if isLoop {
         	                        now := time.Now()
                 	                tim := fmt.Sprintf("%02d.%02d",now.Hour(),now.Minute())
-                        	        fmt.Println(tim+" - "+lotime)
-                                	if tim > lotime {
+                        	        if n % 10 == 0 {
+						fmt.Println(tim+" - "+lotime)
+					}
+                                	if tim == lotime {
                                         	ind = loend
+						fmt.Println("Loop finished")
+						n = limit + 1
                                 	}
                         	}
 				timeToGo = fmt.Sprintf("%d",limit-n)
@@ -177,6 +191,7 @@ func procFy2300(path string){
 		}
                 if pt[0] == "lo" {
 			lostart = ind
+			fmt.Println("Loop initiated")
 		}
                 if pt[0] == "un" {
                         locnt++
@@ -184,10 +199,11 @@ func procFy2300(path string){
 			fmt.Println(limit,locnt)
 			if limit > locnt {
 				ind = lostart
+				fmt.Println("Loop finished")
 			}
                 }
                 if pt[0] == "ti" {
-			loend = ind + 1
+			loend = ind 
 			isLoop = true
 			lotime = pt[1]
                         ind = lostart
@@ -203,6 +219,12 @@ func procFy2300(path string){
 	}
     }
     hasEnded = true
+    isRunning = false
+    lostart = 0
+    loend = 0
+    lotime = ""
+    locnt = 0
+    isLoop = false
 }
 
 func readLines(path string) ([]string, error) {
