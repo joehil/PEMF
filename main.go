@@ -70,7 +70,11 @@ func main() {
 
     fmt.Println("Frequency server started")
 
-    tmpl := template.Must(template.ParseFiles("forms.html"))
+    chome := os.Getenv("HOME")
+
+    fmt.Println("HOME: "+chome)
+
+    tmpl := template.Must(template.ParseFiles(chome+"/forms.html"))
 
     http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 
@@ -97,7 +101,7 @@ func main() {
         data = FormsData{
 		Title: "Kein Titel",
 		Frmethod: answer.Frmethod, 
-            	Frfiles: listDir("data/"+answer.Frmethod),
+            	Frfiles: listDir(chome+"/data/"+answer.Frmethod),
 		Frfile: answer.Frfile, 
 		Stage: answer.Stage,
         }
@@ -112,7 +116,7 @@ func main() {
 //        		procAudio("data/"+answer.Frfile)
         		case "FY2300":
 			fmt.Println("FY2300: "+answer.Frfile)
-        		go procFy2300("data/FY2300/"+answer.Frfile)
+        		go procFy2300(chome+"/data/FY2300/"+answer.Frfile)
 		        default:
         		fmt.Println("The command is wrong!")
 			data.Stage = "Run"
@@ -275,3 +279,4 @@ func parseFy2300(cmd string) (string, string, []string) {
 
     return cser, cint, parts
 }
+
