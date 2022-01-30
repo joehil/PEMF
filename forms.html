@@ -14,17 +14,23 @@
     function refreshPage() {
         document.frform.submit();
     }
+    function submitform()
+    {
+	document.getElementById("stage").value = "Stop";
+	document.frform.submit();
+    }
 </script>
-    <form name="frform" id="frform" method="POST" action="/">
+<form name="frform" id="frform" method="POST" action="/" onsubmit="submitform()">
     <input type="hidden" name="frfile" id="frfile" value="{{.Frfile}}">
     <input type="hidden" name="stage" id="stage" value="Run">
-    </form>
 <br>
 Program: {{.Frfile}}<br>
 Frequency: {{.Frequency}}<br>
 Amplitude: {{.Amplitude}}<br>
 Waveform: {{.Waveform}}<br>
-Time to go: {{.TimeToGo}}<br>
+Time to go: {{.TimeToGo}}<br><br>
+<input type="submit" value="Abort program">
+</form>
 {{end}}
 {{if (eq .Stage "Ended")}}
 <script type="text/javascript">
@@ -81,8 +87,12 @@ function submitform()
     	{{range .Frfiles}}
             	<option>{{.Frfile}}</option>
     	{{end}}
-	</select><br /><br />
-        <input type="submit" value="Process">
+	</select><br />
+        <label>PEMF factor:</label><br />
+	<input type="number" name="pemffactor" id="pemffactor" min="-10" max="10"><br>
+        <label>Loop until:</label><br />
+        <input type="time" name="loopuntil" id="loopuntil"><br><br>
+        <input type="submit" value="Start program">
 	<input type="hidden" name="stage" id="stage" value="Success">
     </form>
 {{end}}

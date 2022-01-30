@@ -33,6 +33,7 @@ type Answer struct {
     Frmethod string
     Frfile string
     Stage string
+    Until string
 }
 
 func listDir(direc string) (trfiles []FFiles) {
@@ -60,6 +61,7 @@ var loend int = 0
 var locnt int = 0
 var lotime string = ""
 var isLoop bool = false
+var stopFlag bool = false
 
 var isRunning bool = false
 
@@ -82,6 +84,7 @@ func main() {
             Frmethod: r.FormValue("frmethod"),
             Frfile: r.FormValue("frfile"),
             Stage: r.FormValue("stage"),
+	    Until: r.FormValue("loopuntil"),
         }
 
 	if answer.Frfile != "" {
@@ -96,6 +99,12 @@ func main() {
 
         if answer.Stage == "" {
                 answer.Stage = "Initial"
+        }
+
+        if answer.Stage == "Stop" {
+		stopFlag = true
+                answer.Stage = "Run"
+		fmt.Println("Abort initiated")
         }
 
         data = FormsData{
@@ -115,8 +124,8 @@ func main() {
                         fmt.Println("Audio: "+answer.Frfile)
 //        		procAudio("data/"+answer.Frfile)
         		case "FY2300":
-			fmt.Println("FY2300: "+answer.Frfile)
-        		go procFy2300(chome+"/data/FY2300/"+answer.Frfile)
+			fmt.Println("FY2300: "+answer.Frfile, answer.Until)
+        		go procFy2300(chome+"/data/FY2300/"+answer.Frfile,answer.Until)
 		        default:
         		fmt.Println("The command is wrong!")
 			data.Stage = "Run"
@@ -133,6 +142,7 @@ func main() {
 		if hasEnded {
 			data.Stage = "Ended"
 			hasEnded = false
+			stopFlag = false
 		}
 	}
 
@@ -142,8 +152,9 @@ func main() {
     http.ListenAndServe(":8080", nil)
 }
 
-func procFy2300(path string){
+func procFy2300(path string, loopuntil string){
     isRunning = true
+    loop := strings.Replace(loopuntil, ":", ".",-1)
     lines,err := readLines(path)
 
     if err != nil {
@@ -191,6 +202,12 @@ func procFy2300(path string){
                         	}
 				timeToGo = fmt.Sprintf("%d",limit-n)
                         	time.Sleep(1 * time.Second)
+				if stopFlag {
+					n = limit + 1
+					ind = len(lines) 
+					cser = "WMN0"
+					fmt.Println("Process aborted")
+				}
                 	} 
 		}
                 if pt[0] == "lo" {
@@ -203,13 +220,14 @@ func procFy2300(path string){
 			fmt.Println(limit,locnt)
 			if limit > locnt {
 				ind = lostart
+			} else {
 				fmt.Println("Loop finished")
 			}
                 }
                 if pt[0] == "ti" {
 			loend = ind 
 			isLoop = true
-			lotime = pt[1]
+			lotime = strings.Replace(pt[1], "<UNTIL>", loop, -1)
                         ind = lostart
                 }
 	}
