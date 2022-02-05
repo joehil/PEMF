@@ -80,6 +80,10 @@ func main() {
 
     fmt.Println("USBPORT: "+cusb)
 
+    cspeed := os.Getenv("USBSPEED")
+
+    fmt.Println("USBSPEED: "+cspeed)
+
     cport := os.Getenv("WEBPORT")
 
     fmt.Println("WEBPORT: "+cport)
@@ -133,7 +137,7 @@ func main() {
 //        		procAudio("data/"+answer.Frfile)
         		case "FY2300":
 			fmt.Println("FY2300: "+answer.Frfile, answer.Until)
-        		go procFy2300(chome+"/data/FY2300/"+answer.Frfile,answer.Until,cusb)
+        		go procFy2300(chome+"/data/FY2300/"+answer.Frfile,answer.Until,cusb,cspeed)
 		        default:
         		fmt.Println("The command is wrong!")
 			data.Stage = "Run"
@@ -160,7 +164,7 @@ func main() {
     http.ListenAndServe(":"+cport, nil)
 }
 
-func procFy2300(path string, loopuntil string, cusb string){
+func procFy2300(path string, loopuntil string, cusb string, cspeed string){
     isRunning = true
     loop := strings.Replace(loopuntil, ":", ".",-1)
     lines,err := readLines(path)
@@ -169,7 +173,9 @@ func procFy2300(path string, loopuntil string, cusb string){
 	fmt.Println(err)
     }
 
-    c := &serial.Config{Name: "/dev/serial/by-id/"+cusb, Baud: 115200}
+    speed, _ := strconv.Atoi(cspeed)
+
+    c := &serial.Config{Name: "/dev/serial/by-id/"+cusb, Baud: speed}
     s, err := serial.OpenPort(c)
     if err != nil {
     	fmt.Println(err)
