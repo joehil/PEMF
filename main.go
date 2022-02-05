@@ -142,6 +142,9 @@ func main() {
         		case "FY2300":
 			fmt.Println("FY2300: "+answer.Frfile, answer.Until)
         		go procFy2300(chome+"/data/FY2300/"+answer.Frfile,answer.Until,cusb,cspeed,cfactor)
+                        case "FY6900":
+                        fmt.Println("FY6900: "+answer.Frfile, answer.Until)
+                        go procFy2300(chome+"/data/FY6900/"+answer.Frfile,answer.Until,cusb,cspeed,cfactor)
 		        default:
         		fmt.Println("The command is wrong!")
 			data.Stage = "Run"
