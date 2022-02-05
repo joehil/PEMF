@@ -88,6 +88,10 @@ func main() {
 
     fmt.Println("WEBPORT: "+cport)
 
+    cfactor := os.Getenv("GENFACTOR")
+
+    fmt.Println("GENFACTOR: "+cfactor)
+
     tmpl := template.Must(template.ParseFiles(chome+"/forms.html"))
 
     http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -137,7 +141,7 @@ func main() {
 //        		procAudio("data/"+answer.Frfile)
         		case "FY2300":
 			fmt.Println("FY2300: "+answer.Frfile, answer.Until)
-        		go procFy2300(chome+"/data/FY2300/"+answer.Frfile,answer.Until,cusb,cspeed)
+        		go procFy2300(chome+"/data/FY2300/"+answer.Frfile,answer.Until,cusb,cspeed,cfactor)
 		        default:
         		fmt.Println("The command is wrong!")
 			data.Stage = "Run"
@@ -164,7 +168,7 @@ func main() {
     http.ListenAndServe(":"+cport, nil)
 }
 
-func procFy2300(path string, loopuntil string, cusb string, cspeed string){
+func procFy2300(path string, loopuntil string, cusb string, cspeed string, cfactor string){
     isRunning = true
     loop := strings.Replace(loopuntil, ":", ".",-1)
     lines,err := readLines(path)
@@ -183,7 +187,7 @@ func procFy2300(path string, loopuntil string, cusb string, cspeed string){
 
     for ind := 0; ind < len(lines); ind++ {
 	cmd := lines[ind]
-	cser, cint, p := parseFy2300(cmd)
+	cser, cint, p := parseFy2300(cmd,cfactor)
 	switch p[0] {
 		case "fr":
 		frequency = p[1]
@@ -278,7 +282,7 @@ func readLines(path string) ([]string, error) {
     return lines, scanner.Err()
 }
 
-func parseFy2300(cmd string) (string, string, []string) {
+func parseFy2300(cmd string, cfactor string) (string, string, []string) {
     var cser string = ""
     var cint string = ""
 
@@ -294,7 +298,14 @@ func parseFy2300(cmd string) (string, string, []string) {
         case "ti":
         cint = "ti:"+parts[1]
 	case "fr":
-        cser = "WMF"+parts[1]
+	freq,_ := strconv.ParseFloat(parts[1], 64)
+        fact,_ := strconv.ParseFloat(cfactor, 64)
+	if fact != 1 {
+		freq *= fact
+        	cser = "WMF"+fmt.Sprintf("%.0f",freq)
+	} else {
+		cser = "WMF"+parts[1]
+	}
         case "am":
         cser = "WMA"+parts[1]
         case "wv":
