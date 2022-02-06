@@ -90,7 +90,7 @@ function submitform()
     	{{end}}
 	</select><br />
         <label>PEMF factor:</label><br />
-	<input type="number" name="pemffactor" id="pemffactor" min="-10" max="10"><br>
+	<input type="number" name="pemffactor" id="pemffactor" min="1" max="1000" value="{{.Pemffactor}}"><br>
         <label>Loop until:</label><br />
         <input type="time" name="loopuntil" id="loopuntil"><br><br>
         <input type="submit" value="Start program">

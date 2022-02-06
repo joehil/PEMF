@@ -27,6 +27,7 @@ type FormsData struct {
     Amplitude string
     Waveform string
     TimeToGo string
+    Pemffactor string
 }
 
 type Answer struct {
@@ -34,6 +35,7 @@ type Answer struct {
     Frfile string
     Stage string
     Until string
+    Pemffactor string
 }
 
 func listDir(direc string) (trfiles []FFiles) {
@@ -53,6 +55,7 @@ var timeToGo string = "0"
 var frequency string = "0"
 var amplitude string = "0"
 var waveform string = "0"
+var pemffactor string = "100"
 var curFile string = ""
 var hasEnded bool = false
 
@@ -101,6 +104,7 @@ func main() {
             Frfile: r.FormValue("frfile"),
             Stage: r.FormValue("stage"),
 	    Until: r.FormValue("loopuntil"),
+	    Pemffactor: r.FormValue("pemffactor"),
         }
 
 	if answer.Frfile != "" {
@@ -111,6 +115,10 @@ func main() {
 
         if answer.Frmethod == "" {
 		answer.Frmethod = "Audio"
+        }
+
+        if answer.Pemffactor == "" {
+                answer.Pemffactor = pemffactor
         }
 
         if answer.Stage == "" {
@@ -129,6 +137,7 @@ func main() {
             	Frfiles: listDir(chome+"/data/"+answer.Frmethod),
 		Frfile: answer.Frfile, 
 		Stage: answer.Stage,
+		Pemffactor: answer.Pemffactor,
         }
 
 //	fmt.Println(data)
@@ -141,10 +150,10 @@ func main() {
 //        		procAudio("data/"+answer.Frfile)
         		case "FY2300":
 			fmt.Println("FY2300: "+answer.Frfile, answer.Until)
-        		go procFy2300(chome+"/data/FY2300/"+answer.Frfile,answer.Until,cusb,cspeed,cfactor)
+        		go procFy2300(chome+"/data/FY2300/"+answer.Frfile,answer.Until,cusb,cspeed,cfactor,answer.Pemffactor)
                         case "FY6900":
                         fmt.Println("FY6900: "+answer.Frfile, answer.Until)
-                        go procFy2300(chome+"/data/FY6900/"+answer.Frfile,answer.Until,cusb,cspeed,cfactor)
+                        go procFy2300(chome+"/data/FY6900/"+answer.Frfile,answer.Until,cusb,cspeed,cfactor,answer.Pemffactor)
 		        default:
         		fmt.Println("The command is wrong!")
 			data.Stage = "Run"
@@ -171,7 +180,7 @@ func main() {
     http.ListenAndServe(":"+cport, nil)
 }
 
-func procFy2300(path string, loopuntil string, cusb string, cspeed string, cfactor string){
+func procFy2300(path string, loopuntil string, cusb string, cspeed string, cfactor string, pemffactor string){
     isRunning = true
     loop := strings.Replace(loopuntil, ":", ".",-1)
     lines,err := readLines(path)
@@ -190,7 +199,7 @@ func procFy2300(path string, loopuntil string, cusb string, cspeed string, cfact
 
     for ind := 0; ind < len(lines); ind++ {
 	cmd := lines[ind]
-	cser, cint, p := parseFy2300(cmd,cfactor)
+	cser, cint, p := parseFy2300(cmd,cfactor,pemffactor)
 	switch p[0] {
 		case "fr":
 		frequency = p[1]
@@ -285,7 +294,7 @@ func readLines(path string) ([]string, error) {
     return lines, scanner.Err()
 }
 
-func parseFy2300(cmd string, cfactor string) (string, string, []string) {
+func parseFy2300(cmd string, cfactor string, pemffactor string) (string, string, []string) {
     var cser string = ""
     var cint string = ""
 
@@ -310,7 +319,11 @@ func parseFy2300(cmd string, cfactor string) (string, string, []string) {
 		cser = "WMF"+parts[1]
 	}
         case "am":
-        cser = "WMA"+parts[1]
+        ampl,_ := strconv.ParseFloat(parts[1], 64)
+        fact,_ := strconv.ParseFloat(pemffactor, 64)
+        fact = fact / 100
+        ampl *= fact
+        cser = "WMA"+fmt.Sprintf("%2.2f",ampl)
         case "wv":
         cser = "WMW"+parts[1]
         case "on":
