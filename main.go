@@ -113,6 +113,7 @@ func main() {
     		s, err := serial.OpenPort(c)
     		if err != nil {
         		fmt.Println(err)
+			os.Exit(-1)
     		} 
 
 		for true {
