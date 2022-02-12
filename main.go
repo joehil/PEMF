@@ -6,6 +6,7 @@ import (
     "io/ioutil"
     "fmt"
     "os"
+    "syscall"
     "time"
     "bufio"
     "strings"
@@ -71,21 +72,71 @@ var isRunning bool = false
 func main() {
     var data FormsData
 
-    data.Frmethod = "Audio"
-
-    fmt.Println("Frequency server started")
-
     chome := os.Getenv("HOME")
 
     fmt.Println("HOME: "+chome)
 
-    cusb := os.Getenv("USBPORT")
+    cpipe := os.Getenv("PIPE")
 
-    fmt.Println("USBPORT: "+cusb)
+    fmt.Println("PIPE: "+cpipe)
 
-    cspeed := os.Getenv("USBSPEED")
+    if len(os.Args)>1{
+	if os.Args[1] == "generator"{
+		fmt.Println("Generator started")
 
-    fmt.Println("USBSPEED: "+cspeed)
+		cusb := os.Getenv("USBPORT")
+
+		fmt.Println("USBPORT: "+cusb)
+
+		cspeed := os.Getenv("USBSPEED")
+
+		fmt.Println("USBSPEED: "+cspeed)
+
+		if err := os.Remove(cpipe); err != nil && !os.IsNotExist(err) {
+			fmt.Printf("remove: %v\n", err)
+		}
+		if err := syscall.Mkfifo(cpipe, 0644); err != nil {
+			fmt.Printf("mkfifo: %v\n", err)
+		}
+
+		f, err := os.OpenFile(cpipe, os.O_RDONLY|syscall.O_NONBLOCK, 0644)
+		if err != nil {
+			fmt.Printf("open: %v\n", err)
+		}
+		defer f.Close()
+
+		reader := bufio.NewReader(f)
+
+    		speed, _ := strconv.Atoi(cspeed)
+
+    		c := &serial.Config{Name: "/dev/serial/by-id/"+cusb, Baud: speed}
+    		s, err := serial.OpenPort(c)
+    		if err != nil {
+        		fmt.Println(err)
+    		} 
+
+		for true {
+                	line, err := reader.ReadBytes('\n')
+                	if err == nil {
+				m := string(line)
+				m = strings.ReplaceAll(m, "|", "\n")
+                        	fmt.Printf("%v Message: %s", time.Now().String(), m)
+
+               			_, err := s.Write([]byte(m+"\n"))
+                		if err != nil {
+                        		fmt.Println(err)
+                		}
+                		time.Sleep(1 * time.Second)
+	                }
+		} 
+
+		os.Exit(0)
+	}
+    }
+
+    data.Frmethod = "Audio"
+
+    fmt.Println("Frequency server started")
 
     cport := os.Getenv("WEBPORT")
 
@@ -150,10 +201,10 @@ func main() {
 //        		procAudio("data/"+answer.Frfile)
         		case "FY2300":
 			fmt.Println("FY2300: "+answer.Frfile, answer.Until)
-        		go procFy2300(chome+"/data/FY2300/"+answer.Frfile,answer.Until,cusb,cspeed,cfactor,answer.Pemffactor)
+        		go procFy2300(chome+"/data/FY2300/"+answer.Frfile,answer.Until,cfactor,answer.Pemffactor,cpipe)
                         case "FY6900":
                         fmt.Println("FY6900: "+answer.Frfile, answer.Until)
-                        go procFy2300(chome+"/data/FY6900/"+answer.Frfile,answer.Until,cusb,cspeed,cfactor,answer.Pemffactor)
+                        go procFy2300(chome+"/data/FY6900/"+answer.Frfile,answer.Until,cfactor,answer.Pemffactor,cpipe)
 		        default:
         		fmt.Println("The command is wrong!")
 			data.Stage = "Run"
@@ -180,7 +231,7 @@ func main() {
     http.ListenAndServe(":"+cport, nil)
 }
 
-func procFy2300(path string, loopuntil string, cusb string, cspeed string, cfactor string, pemffactor string){
+func procFy2300(path string, loopuntil string, cfactor string, pemffactor string, cpipe string){
     isRunning = true
     loop := strings.Replace(loopuntil, ":", ".",-1)
     lines,err := readLines(path)
@@ -188,14 +239,6 @@ func procFy2300(path string, loopuntil string, cusb string, cspeed string, cfact
     if err != nil {
 	fmt.Println(err)
     }
-
-    speed, _ := strconv.Atoi(cspeed)
-
-    c := &serial.Config{Name: "/dev/serial/by-id/"+cusb, Baud: speed}
-    s, err := serial.OpenPort(c)
-    if err != nil {
-    	fmt.Println(err)
-    } 
 
     for ind := 0; ind < len(lines); ind++ {
 	cmd := lines[ind]
@@ -263,11 +306,7 @@ func procFy2300(path string, loopuntil string, cusb string, cspeed string, cfact
 	}
 	if cser != "" {
 		fmt.Println(cser)
-        	_, err := s.Write([]byte(cser+"\n"))
-        	if err != nil {
-                	fmt.Println(err)
-        	}
-		time.Sleep(1 * time.Second)
+		writeGenerator(cser+"\n", cpipe)
 	}
     }
     hasEnded = true
@@ -339,3 +378,16 @@ func parseFy2300(cmd string, cfactor string, pemffactor string) (string, string,
     return cser, cint, parts
 }
 
+func writeGenerator(msg string, cpipe string) {
+        f, err := os.OpenFile(cpipe, os.O_WRONLY|syscall.O_NONBLOCK, 0644)
+        if err != nil {
+                fmt.Printf("open: %v\n", err)
+        }
+        defer f.Close()
+
+        _, err = f.WriteString(msg+"\n")
+
+        if err != nil {
+	        fmt.Println(err)
+        }
+}
