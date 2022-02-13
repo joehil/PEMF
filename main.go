@@ -121,7 +121,7 @@ func main() {
                 	if err == nil {
 				m := string(line)
 				m = strings.ReplaceAll(m, "|", "\n")
-                        	fmt.Printf("%v Message: %s", time.Now().String(), m)
+                        	fmt.Printf("Message: %s", m)
 
                			_, err := s.Write([]byte(m+"\n"))
                 		if err != nil {
@@ -146,6 +146,10 @@ func main() {
     cfactor := os.Getenv("GENFACTOR")
 
     fmt.Println("GENFACTOR: "+cfactor)
+
+    cgenport := os.Getenv("GENPORT")
+
+    fmt.Println("GENPORT: "+cgenport)
 
     tmpl := template.Must(template.ParseFiles(chome+"/forms.html"))
 
@@ -202,10 +206,10 @@ func main() {
 //        		procAudio("data/"+answer.Frfile)
         		case "FY2300":
 			fmt.Println("FY2300: "+answer.Frfile, answer.Until)
-        		go procFy2300(chome+"/data/FY2300/"+answer.Frfile,answer.Until,cfactor,answer.Pemffactor,cpipe)
+        		go procFy2300(chome+"/data/FY2300/"+answer.Frfile,answer.Until,cfactor,answer.Pemffactor,cpipe,cgenport)
                         case "FY6900":
                         fmt.Println("FY6900: "+answer.Frfile, answer.Until)
-                        go procFy2300(chome+"/data/FY6900/"+answer.Frfile,answer.Until,cfactor,answer.Pemffactor,cpipe)
+                        go procFy2300(chome+"/data/FY6900/"+answer.Frfile,answer.Until,cfactor,answer.Pemffactor,cpipe,cgenport)
 		        default:
         		fmt.Println("The command is wrong!")
 			data.Stage = "Run"
@@ -232,7 +236,11 @@ func main() {
     http.ListenAndServe(":"+cport, nil)
 }
 
-func procFy2300(path string, loopuntil string, cfactor string, pemffactor string, cpipe string){
+func procFy2300(path string, loopuntil string, cfactor string, pemffactor string, cpipe string, cgenport string){
+    var cser string
+    var cint string
+    var p []string
+
     isRunning = true
     loop := strings.Replace(loopuntil, ":", ".",-1)
     lines,err := readLines(path)
@@ -243,7 +251,11 @@ func procFy2300(path string, loopuntil string, cfactor string, pemffactor string
 
     for ind := 0; ind < len(lines); ind++ {
 	cmd := lines[ind]
-	cser, cint, p := parseFy2300(cmd,cfactor,pemffactor)
+	if cgenport == "P"{
+		cser, cint, p = parseFy2300_prim(cmd,cfactor,pemffactor)
+	} else {
+                cser, cint, p = parseFy2300_sec(cmd,cfactor,pemffactor)
+	}
 	switch p[0] {
 		case "fr":
 		frequency = p[1]
@@ -278,8 +290,12 @@ func procFy2300(path string, loopuntil string, cfactor string, pemffactor string
                         	time.Sleep(1 * time.Second)
 				if stopFlag {
 					n = limit + 1
-					ind = len(lines) 
-					cser = "WMN0"
+					ind = len(lines)
+					if cgenport == "P"{ 
+						cser = "WMN0"
+					} else {
+                                             	cser = "WFN0"
+                                        } 
 					fmt.Println("Process aborted")
 				}
                 	} 
@@ -307,7 +323,7 @@ func procFy2300(path string, loopuntil string, cfactor string, pemffactor string
 	}
 	if cser != "" {
 		fmt.Println(cser)
-		writeGenerator(cser+"\n", cpipe)
+		writeGenerator(cser, cpipe)
 	}
     }
     hasEnded = true
@@ -334,7 +350,7 @@ func readLines(path string) ([]string, error) {
     return lines, scanner.Err()
 }
 
-func parseFy2300(cmd string, cfactor string, pemffactor string) (string, string, []string) {
+func parseFy2300_prim(cmd string, cfactor string, pemffactor string) (string, string, []string) {
     var cser string = ""
     var cint string = ""
 
@@ -370,6 +386,51 @@ func parseFy2300(cmd string, cfactor string, pemffactor string) (string, string,
         cser = "WMN1"
         case "of":
         cser = "WMN0"
+	case "##":
+	break
+        default:
+        fmt.Println("The command is wrong!")
+    }
+
+    return cser, cint, parts
+}
+
+func parseFy2300_sec(cmd string, cfactor string, pemffactor string) (string, string, []string) {
+    var cser string = ""
+    var cint string = ""
+
+    parts := strings.Split(cmd, " ")
+
+    switch parts[0] {
+        case "do":
+        cint = "do:"+parts[1]
+        case "lo":
+        cint = "lo"
+        case "un":
+        cint = "un:"+parts[1]
+        case "ti":
+        cint = "ti:"+parts[1]
+	case "fr":
+	freq,_ := strconv.ParseFloat(parts[1], 64)
+        fact,_ := strconv.ParseFloat(cfactor, 64)
+	if fact != 1 {
+		freq *= fact
+        	cser = "WFF"+fmt.Sprintf("%.0f",freq)
+	} else {
+		cser = "WFF"+parts[1]
+	}
+        case "am":
+        ampl,_ := strconv.ParseFloat(parts[1], 64)
+        fact,_ := strconv.ParseFloat(pemffactor, 64)
+        fact = fact / 100
+        ampl *= fact
+        cser = "WFA"+fmt.Sprintf("%2.2f",ampl)
+        case "wv":
+        cser = "WFW"+parts[1]
+        case "on":
+        cser = "WFN1"
+        case "of":
+        cser = "WFN0"
 	case "##":
 	break
         default:

@@ -4,5 +4,6 @@
 --env='HOME=/home/pi/git/frequency-server' \
 --env='USBSPEED=115200' \
 --env='USBPORT=usb-1a86_USB_Serial-if00-port0' \
+--env='PIPE=/tmp/FY6900.pipe' \
 --stdout=/tmp/frequency-generator1.log \
-/home/pi/git/frequency-server/frequency-server
+/home/pi/git/frequency-server/frequency-server generator
