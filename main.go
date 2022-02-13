@@ -127,8 +127,8 @@ func main() {
                 		if err != nil {
                         		fmt.Println(err)
                 		}
-                		time.Sleep(1 * time.Second)
 	                }
+                        time.Sleep(1 * time.Second)
 		} 
 
 		os.Exit(0)
