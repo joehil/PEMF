@@ -109,7 +109,7 @@ func main() {
 
     		speed, _ := strconv.Atoi(cspeed)
 
-    		c := &serial.Config{Name: "/dev/serial/by-id/"+cusb, Baud: speed}
+    		c := &serial.Config{Name: "/dev/serial/by-id/"+cusb, Baud: speed, ReadTimeout: time.Second * 5}
     		s, err := serial.OpenPort(c)
     		if err != nil {
         		fmt.Println(err)
@@ -121,12 +121,19 @@ func main() {
                 	if err == nil {
 				m := string(line)
 				m = strings.ReplaceAll(m, "|", "\n")
-                        	fmt.Printf("Message: %s", m)
+                        	fmt.Printf("Request: %s", m)
 
                			_, err := s.Write([]byte(m+"\n"))
                 		if err != nil {
                         		fmt.Println(err)
                 		}
+       				buf := make([]byte, 128)
+        			n, err := s.Read(buf)
+        			if err != nil {
+                			fmt.Println(err)
+        			} else {
+        				fmt.Printf("Answer: %q\n", buf[:n])
+				}
 	                }
                         time.Sleep(1 * time.Second)
 		} 
