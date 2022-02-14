@@ -121,7 +121,7 @@ func main() {
                 	if err == nil {
 				m := string(line)
 				m = strings.ReplaceAll(m, "|", "\n")
-                        	fmt.Printf("Request: %s", m)
+				fmt.Printf("%v Request: %s", time.Now().String(), m)
 
                			_, err := s.Write([]byte(m+"\n"))
                 		if err != nil {
@@ -132,7 +132,7 @@ func main() {
         			if err != nil {
                 			fmt.Println(err)
         			} else {
-        				fmt.Printf("Answer: %q\n", buf[:n])
+        				fmt.Printf("%v Reply: %q\n",time.Now().String(),buf[:n])
 				}
 	                }
                         time.Sleep(1 * time.Second)
@@ -329,7 +329,7 @@ func procFy2300(path string, loopuntil string, cfactor string, pemffactor string
                 }
 	}
 	if cser != "" {
-		fmt.Println(cser)
+		fmt.Printf("%v %s\n", time.Now().String(), cser)
 		writeGenerator(cser, cpipe)
 	}
     }
