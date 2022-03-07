@@ -141,37 +141,68 @@ func main() {
 
 		os.Exit(0)
 	}
+	if os.Args[1] == "audio"{
+		fmt.Println("Audio started")
+
+                ctones := os.Getenv("TONES")
+
+                fmt.Println("TONES: "+ctones)
+
+		if err := os.Remove(cpipe); err != nil && !os.IsNotExist(err) {
+			fmt.Printf("remove: %v\n", err)
+		}
+		if err := syscall.Mkfifo(cpipe, 0644); err != nil {
+			fmt.Printf("mkfifo: %v\n", err)
+		}
+
+		f, err := os.OpenFile(cpipe, os.O_RDONLY|syscall.O_NONBLOCK, 0644)
+		if err != nil {
+			fmt.Printf("open: %v\n", err)
+		}
+		defer f.Close()
+
+		reader := bufio.NewReader(f)
+
+		for true {
+                	line, err := reader.ReadBytes('\n')
+                	if err == nil {
+				m := string(line)
+				m = strings.ReplaceAll(m, "|", "\n")
+				fmt.Printf("%v Request: %s", time.Now().String(), m)
+	                }
+		} 
+		os.Exit(0)
+	}
         if os.Args[1] == "spi"{
-	dev, err := spi.Open(&spi.Devfs{
-		Dev:      "/dev/spidev0.0",
-		Mode:     spi.Mode3,
-		MaxSpeed: 500000,
-	})
-	if err != nil {
-		panic(err)
-	}
-	defer dev.Close()
+		dev, err := spi.Open(&spi.Devfs{
+			Dev:      "/dev/spidev0.0",
+			Mode:     spi.Mode3,
+			MaxSpeed: 500000,
+		})
+		if err != nil {
+			panic(err)
+		}
+		defer dev.Close()
 
-	if err := dev.Tx([]byte{
-		0, 0, 0, 0,
-		0xff, 200, 0, 200,
-		0xff, 200, 0, 200,
-		0xe0, 200, 0, 200,
-		0xff, 200, 0, 200,
-		0xff, 8, 50, 0,
-		0xff, 200, 0, 0,
-		0xff, 0, 0, 0,
-		0xff, 200, 0, 200,
-		0xff, 0xff, 0xff, 0xff,
-		0xff, 0xff, 0xff, 0xff,
-		0xff, 0xff, 0xff, 0xff,
-		0xff, 0xff, 0xff, 0xff,
-	}, nil); err != nil {
-		panic(err)
+		if err := dev.Tx([]byte{
+			0, 0, 0, 0,
+			0xff, 200, 0, 200,
+			0xff, 200, 0, 200,
+			0xe0, 200, 0, 200,
+			0xff, 200, 0, 200,
+			0xff, 8, 50, 0,
+			0xff, 200, 0, 0,
+			0xff, 0, 0, 0,
+			0xff, 200, 0, 200,
+			0xff, 0xff, 0xff, 0xff,
+			0xff, 0xff, 0xff, 0xff,
+			0xff, 0xff, 0xff, 0xff,
+			0xff, 0xff, 0xff, 0xff,
+		}, nil); err != nil {
+			panic(err)
+		}
+		os.Exit(0)
 	}
-	os.Exit(0)
-	}
-
     }
 
     data.Frmethod = "Audio"
