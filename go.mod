@@ -1,4 +1,4 @@
-module github.com/joehil/frequency-server
+module github.com/joehil/PEMF
 
 go 1.16
 
