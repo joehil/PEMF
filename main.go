@@ -3,8 +3,6 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"github.com/tarm/serial"
-	"golang.org/x/exp/io/spi"
 	"html/template"
 	"io/ioutil"
 	"net/http"
@@ -14,6 +12,9 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/tarm/serial"
+	"golang.org/x/exp/io/spi"
 )
 
 type FFiles struct {
@@ -118,7 +119,7 @@ func main() {
 				os.Exit(-1)
 			}
 
-			for true {
+			for {
 				line, err := reader.ReadBytes('\n')
 				if err == nil {
 					m := string(line)
@@ -138,7 +139,7 @@ func main() {
 				}
 				time.Sleep(1 * time.Second)
 			}
-			os.Exit(0)
+			//			os.Exit(0)
 		}
 		if os.Args[1] == "audio" {
 			fmt.Println("Audio started")
@@ -162,7 +163,7 @@ func main() {
 
 			reader := bufio.NewReader(f)
 
-			for true {
+			for {
 				line, err := reader.ReadBytes('\n')
 				if err == nil {
 					m := string(line)
@@ -175,7 +176,7 @@ func main() {
 					cmd.Run()
 				}
 			}
-			os.Exit(0)
+			//			os.Exit(0)
 		}
 		if os.Args[1] == "spi" {
 			dev, err := spi.Open(&spi.Devfs{
@@ -646,7 +647,6 @@ func parseAudio(cmd string, cfactor string, pemffactor string) (string, string, 
 	default:
 		fmt.Println("The command is wrong!")
 	}
-
 	return cser, cint, parts
 }
 
