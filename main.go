@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"html/template"
 	"io/ioutil"
+	"math/rand"
 	"net/http"
 	"os"
-	"os/exec"
 	"strconv"
 	"strings"
 	"syscall"
@@ -62,6 +62,9 @@ var waveform string = "0"
 var pemffactor string = "100"
 var curFile string = ""
 var hasEnded bool = false
+var rfrequency string = "0"
+var ramplitude string = "0"
+var rperiod string = "0"
 
 var lostart int = 0
 var loend int = 0
@@ -119,12 +122,13 @@ func main() {
 				os.Exit(-1)
 			}
 
-			for {
+			for true {
 				line, err := reader.ReadBytes('\n')
 				if err == nil {
 					m := string(line)
 					m = strings.ReplaceAll(m, "|", "\n")
 					fmt.Printf("%v Request: %s", time.Now().String(), m)
+
 					_, err := s.Write([]byte(m + "\n"))
 					if err != nil {
 						fmt.Println(err)
@@ -139,7 +143,8 @@ func main() {
 				}
 				time.Sleep(1 * time.Second)
 			}
-			//			os.Exit(0)
+
+			os.Exit(0)
 		}
 		if os.Args[1] == "audio" {
 			fmt.Println("Audio started")
@@ -163,20 +168,15 @@ func main() {
 
 			reader := bufio.NewReader(f)
 
-			for {
+			for true {
 				line, err := reader.ReadBytes('\n')
 				if err == nil {
 					m := string(line)
 					m = strings.ReplaceAll(m, "|", "\n")
 					fmt.Printf("%v Request: %s", time.Now().String(), m)
-					var wform string
-					var wduration string
-					var wfreq string
-					cmd := exec.Command(ctones, wform, wduration, wfreq)
-					cmd.Run()
 				}
 			}
-			//			os.Exit(0)
+			os.Exit(0)
 		}
 		if os.Args[1] == "spi" {
 			dev, err := spi.Open(&spi.Devfs{
@@ -278,7 +278,7 @@ func main() {
 			switch answer.Frmethod {
 			case "Audio":
 				fmt.Println("Audio: " + answer.Frfile)
-				go procAudio(chome+"/data/Audio/"+answer.Frfile, answer.Until, cfactor, answer.Pemffactor, cpipe)
+				//        		procAudio("data/"+answer.Frfile)
 			case "FY2300":
 				fmt.Println("FY2300: "+answer.Frfile, answer.Until)
 				go procFy2300(chome+"/data/FY2300/"+answer.Frfile, answer.Until, cfactor, answer.Pemffactor, cpipe, cgenport)
@@ -311,97 +311,6 @@ func main() {
 	http.ListenAndServe(":"+cport, nil)
 }
 
-func procAudio(path string, loopuntil string, cfactor string, pemffactor string, cpipe string) {
-	var cser string
-	var cint string
-	var p []string
-
-	isRunning = true
-	loop := strings.Replace(loopuntil, ":", ".", -1)
-	lines, err := readLines(path)
-
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	for ind := 0; ind < len(lines); ind++ {
-		cmd := lines[ind]
-		cser, cint, p = parseAudio(cmd, cfactor, pemffactor)
-		switch p[0] {
-		case "fr":
-			frequency = p[1]
-		case "am":
-			amplitude = p[1]
-		case "wv":
-			waveform = p[1]
-		default:
-		}
-		if cint != "" {
-			pt := strings.Split(cint, ":")
-			if pt[0] == "do" {
-				timeToGo = cint
-				limit, err := strconv.Atoi(pt[1])
-				if err != nil {
-					fmt.Println(err)
-				}
-				for n := 0; n < limit; n++ {
-					if isLoop {
-						now := time.Now()
-						tim := fmt.Sprintf("%02d.%02d", now.Hour(), now.Minute())
-						if n%10 == 0 {
-							fmt.Println(tim + " - " + lotime)
-						}
-						if tim == lotime {
-							ind = loend
-							fmt.Println("Loop finished")
-							n = limit + 1
-						}
-					}
-					timeToGo = fmt.Sprintf("%d", limit-n)
-					time.Sleep(1 * time.Second)
-					if stopFlag {
-						n = limit + 1
-						ind = len(lines)
-						cser = "WMN0"
-						fmt.Println("Process aborted")
-					}
-				}
-			}
-			if pt[0] == "lo" {
-				lostart = ind
-				fmt.Println("Loop initiated")
-			}
-			if pt[0] == "un" {
-				locnt++
-				limit, _ := strconv.Atoi(pt[1])
-				fmt.Println(limit, locnt)
-				if limit > locnt {
-					ind = lostart
-				} else {
-					fmt.Println("Loop finished")
-				}
-			}
-			if pt[0] == "ti" {
-				loend = ind
-				isLoop = true
-				lotime = strings.Replace(pt[1], "<UNTIL>", loop, -1)
-				ind = lostart
-			}
-		}
-		if cser != "" {
-			fmt.Printf("%v %s\n", time.Now().String(), cser)
-			writeGenerator(cser, cpipe)
-		}
-	}
-	hasEnded = true
-	isRunning = false
-	lostart = 0
-	loend = 0
-	lotime = ""
-	locnt = 0
-	isLoop = false
-}
-
 func procFy2300(path string, loopuntil string, cfactor string, pemffactor string, cpipe string, cgenport string) {
 	var cser string
 	var cint string
@@ -429,10 +338,96 @@ func procFy2300(path string, loopuntil string, cfactor string, pemffactor string
 			amplitude = p[1]
 		case "wv":
 			waveform = p[1]
+		case "rf":
+			rfrequency = p[1]
+		case "ra":
+			ramplitude = p[1]
+		case "rp":
+			rperiod = p[1]
 		default:
 		}
 		if cint != "" {
 			pt := strings.Split(cint, ":")
+			fmt.Println(pt[0])
+			if pt[0] == "rr" {
+				tend := strings.Replace(pt[1], "<UNTIL>", loop, -1)
+				now := time.Now()
+				tim := fmt.Sprintf("%02d.%02d", now.Hour(), now.Minute())
+				fmt.Println(tim + " - fr: " + frequency)
+				fmt.Println(tim + " - am: " + amplitude)
+				fmt.Println(tim + " - wv: " + waveform)
+				fmt.Println(tim + " - rf: " + rfrequency)
+				fmt.Println(tim + " - ra: " + ramplitude)
+				fmt.Println(tim + " - rp: " + rperiod)
+				fmt.Println(tim + " - tend: " + tend)
+				rp, err := strconv.Atoi(rperiod)
+				if err != nil {
+					fmt.Println(err)
+				}
+
+				var rloop bool = true
+				var delay int = 0
+				var tcmd string
+
+				freqfl, _ := strconv.ParseFloat(frequency, 64)
+				rfreqfl, _ := strconv.ParseFloat(rfrequency, 64)
+				amplfl, _ := strconv.ParseFloat(amplitude, 64)
+				ramplfl, _ := strconv.ParseFloat(ramplitude, 64)
+
+				for rloop {
+					rafr := rand.Float64() * rfreqfl
+					efffr := rafr + freqfl - rfreqfl/2
+					freqstr := fmt.Sprintf("%.3f", efffr)
+
+					tcmd = "fr " + freqstr
+
+					if cgenport == "P" {
+						cser, cint, p = parseFy2300_prim(tcmd, cfactor, pemffactor)
+					} else {
+						cser, cint, p = parseFy2300_sec(tcmd, cfactor, pemffactor)
+					}
+
+					fmt.Printf("%v %s\n", time.Now().String(), cser)
+					writeGenerator(cser, cpipe)
+
+					raam := rand.Float64() * ramplfl
+					effam := raam + amplfl - ramplfl/2
+					amplstr := fmt.Sprintf("%.3f", effam)
+
+					tcmd = "am " + amplstr
+
+					if cgenport == "P" {
+						cser, cint, p = parseFy2300_prim(tcmd, cfactor, pemffactor)
+					} else {
+						cser, cint, p = parseFy2300_sec(tcmd, cfactor, pemffactor)
+					}
+
+					fmt.Printf("%v %s\n", time.Now().String(), cser)
+					writeGenerator(cser, cpipe)
+
+					delay = rand.Intn(rp)
+					time.Sleep(time.Duration(delay) * time.Second)
+
+					now := time.Now()
+					tim := fmt.Sprintf("%02d.%02d", now.Hour(), now.Minute())
+					if tim == tend {
+						rloop = false
+						fmt.Println("Loop finished")
+					}
+
+					if stopFlag {
+						ind = len(lines)
+						if cgenport == "P" {
+							cser = "WMN0"
+						} else {
+							cser = "WFN0"
+						}
+						rloop = false
+						fmt.Println("Process aborted")
+					}
+
+				}
+			}
 			if pt[0] == "do" {
 				timeToGo = cint
 				limit, err := strconv.Atoi(pt[1])
@@ -531,6 +526,12 @@ func parseFy2300_prim(cmd string, cfactor string, pemffactor string) (string, st
 		cint = "un:" + parts[1]
 	case "ti":
 		cint = "ti:" + parts[1]
+	case "rf":
+		cint = "rf:" + parts[1]
+	case "ra":
+		cint = "ra:" + parts[1]
+	case "rp":
+		cint = "rp:" + parts[1]
 	case "fr":
 		freq, _ := strconv.ParseFloat(parts[1], 64)
 		fact, _ := strconv.ParseFloat(cfactor, 64)
@@ -554,6 +555,8 @@ func parseFy2300_prim(cmd string, cfactor string, pemffactor string) (string, st
 		cser = "WMN0"
 	case "##":
 		break
+	case "rr":
+		cint = "rr:" + parts[1]
 	default:
 		fmt.Println("The command is wrong!")
 	}
@@ -576,6 +579,12 @@ func parseFy2300_sec(cmd string, cfactor string, pemffactor string) (string, str
 		cint = "un:" + parts[1]
 	case "ti":
 		cint = "ti:" + parts[1]
+	case "rf":
+		cint = "rf:" + parts[1]
+	case "ra":
+		cint = "ra:" + parts[1]
+	case "rp":
+		cint = "rp:" + parts[1]
 	case "fr":
 		freq, _ := strconv.ParseFloat(parts[1], 64)
 		fact, _ := strconv.ParseFloat(cfactor, 64)
@@ -599,54 +608,12 @@ func parseFy2300_sec(cmd string, cfactor string, pemffactor string) (string, str
 		cser = "WFN0"
 	case "##":
 		break
+	case "rr":
+		cint = "rr:" + parts[1]
 	default:
 		fmt.Println("The command is wrong!")
 	}
 
-	return cser, cint, parts
-}
-
-func parseAudio(cmd string, cfactor string, pemffactor string) (string, string, []string) {
-	var cser string = ""
-	var cint string = ""
-
-	parts := strings.Split(cmd, " ")
-
-	switch parts[0] {
-	case "do":
-		cint = "do:" + parts[1]
-	case "lo":
-		cint = "lo"
-	case "un":
-		cint = "un:" + parts[1]
-	case "ti":
-		cint = "ti:" + parts[1]
-	case "fr":
-		freq, _ := strconv.ParseFloat(parts[1], 64)
-		fact, _ := strconv.ParseFloat(cfactor, 64)
-		if fact != 1 {
-			freq *= fact
-			cser = "WFF" + fmt.Sprintf("%.0f", freq)
-		} else {
-			cser = "WFF" + parts[1]
-		}
-	case "am":
-		ampl, _ := strconv.ParseFloat(parts[1], 64)
-		fact, _ := strconv.ParseFloat(pemffactor, 64)
-		fact = fact / 100
-		ampl *= fact
-		cser = "WFA" + fmt.Sprintf("%2.2f", ampl)
-	case "wv":
-		cser = "WFW" + parts[1]
-	case "on":
-		cser = "WFN1"
-	case "of":
-		cser = "WFN0"
-	case "##":
-		break
-	default:
-		fmt.Println("The command is wrong!")
-	}
 	return cser, cint, parts
 }
 
